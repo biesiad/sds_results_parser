@@ -1,14 +1,19 @@
 open Core
 
-let is_sample_line l = Str.string_match (Str.regexp "^[0-9]") l 0
+let valid_sample sample =
+  let columns = Str.split (Str.regexp "[ \t]") sample in
+  match columns with
+  | w :: s :: tl -> 
+    (Str.string_match (Str.regexp "^[0-9]+$") w 0) && (Str.string_match (Str.regexp "^[A-Z][0-9]+$") s 0)
+  | _ -> false
 
 let sample_row sample = 
   let columns = Str.split (Str.regexp "[ \t]") sample in
   match columns with
-  | well :: sample :: tl -> Str.first_chars sample 1
-  | _ -> ""
+  | w :: s :: tl -> Str.first_chars s 1
+  | _ -> failwith "Not a valid sample row"
 
-let rec get_column_count samples = 
+let rec column_count samples = 
   match samples with
   | [] -> 0
   | [hd] -> 1
@@ -16,7 +21,7 @@ let rec get_column_count samples =
     let row1 = sample_row hd1 in
     let row2 = sample_row hd2 in
     if row1 = row2
-    then 1 + get_column_count (hd1 :: tl)
+    then 1 + column_count (hd1 :: tl)
     else 1
 
 let slice columns values =
@@ -44,20 +49,4 @@ let rec print matrix =
   | (hd :: tl) :: acc_tl ->
     printf "%s\t" hd;
     print (tl :: acc_tl)
-  | [] | _ -> ()
-
-let () =
-  match Sys.argv with
-  | [| _; file |] ->    
-    let ic = In_channel.create file in
-    let lines = read_file ic in
-    let samples = List.filter ~f:is_sample_line lines in
-    let column_count = get_column_count samples in
-    print 
-      (samples
-       |> List.map 
-         ~f:(fun s -> (Array.of_list (Str.split (Str.regexp "\t") s)).(5))
-       |> slice column_count
-      )
-  | _ -> printf "Wrong number of arguments"
-;;
+  | _ -> ()
